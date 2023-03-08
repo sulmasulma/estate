@@ -1,0 +1,17 @@
+.DS_Store
+*.pickle
+*.pkl
+*.zip
+*.parquet
+*.pem
+*.gif
+*.jpg
+*.png
+*.txt
+*.hwp
+
+# folder
+libs/
+practice/
+python/
+
