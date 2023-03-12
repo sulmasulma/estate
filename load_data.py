@@ -4,7 +4,7 @@
 create: 2023.02.23
 '''
 
-import sys
+import sys, os
 from sqlalchemy import create_engine
 import pymysql
 import logging, pickle, requests
@@ -13,17 +13,28 @@ import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
 # from bs4 import BeautifulSoup
-from datetime import datetime
+# from datetime import datetime
+import time
 
-# db connection info
-with open('dbinfo_estate.pickle', 'rb') as f:
+## 시작 시간
+start = time.time()
+
+## 이 py 파일의 위치
+# pc용
+# curr_dir = os.getcwd()
+# cron용
+curr_path = os.path.realpath(__file__)
+curr_dir = os.path.dirname(curr_path)
+
+## db connection info
+with open(curr_dir + '/dbinfo_estate.pickle', 'rb') as f:
     dbinfo = pickle.load(f)
 
-# 정부 api key
-with open('api_keys.pickle', 'rb') as f:
+## 정부 api key
+with open(curr_dir + '/api_keys.pickle', 'rb') as f:
     api_keys = pickle.load(f)
 
-# connect MySQL
+## connect MySQL
 try:
     conn = pymysql.connect(
         host=dbinfo['host'],
@@ -74,7 +85,7 @@ def get_data(params):
     return item_list
 
 
-# 가져온 데이터 전처리
+## 가져온 데이터 전처리
 def proc_df(data_frame):
     data = data_frame.copy()
     # 공백은 null로 바꾸기
@@ -123,7 +134,7 @@ def proc_df(data_frame):
     return data
 
 
-# 우편번호 데이터 전처리
+## 우편번호 데이터 전처리
 def proc_zipdf(data_frame):
     zips = data_frame.copy()
     # 타입 변경
@@ -146,7 +157,7 @@ def proc_zipdf(data_frame):
 
 def main():
     ### 우편번호 목록 가져오기
-    zips = pd.read_csv('zip_code.txt', sep='\t', encoding='cp949')
+    zips = pd.read_csv(curr_dir + '/zip_code.txt', sep='\t', encoding='cp949')
     zips_small = proc_zipdf(zips)
 
     # 한 동네(종로구)에 대해 6초
@@ -159,7 +170,9 @@ def main():
     # 3중 for문 말고, zip으로 해야 하나? zip(code, yy, mm). mm은 list(range)
     # cnt = 0
     for code, name in zips_small.values:
+        part_start = time.time()
         # 현재 db에 해당 zip_code 데이터 있을 경우, 다음으로 넘어가기
+        # 근데 요청할 때마다 이렇게 하면 오래 걸리지 않을까?
         sql = 'select distinct zip_code from apart'
         cursor.execute(sql)
         zips_db = [ele[0] for ele in cursor.fetchall()]
@@ -176,7 +189,7 @@ def main():
                 params = {
                     'serviceKey': service_key,
                     'DEAL_YMD': bas_ym, # 계약월
-                    'LAWD_CD': code, # 종로구
+                    'LAWD_CD': code,
                     'pageNo': '1',
                     'numOfRows': '1000', # 없으면 4행. 몇까지 되는지 보기
                 }
@@ -187,20 +200,28 @@ def main():
 
         ### 전처리
         estate_df = pd.DataFrame(estate_data)
-        estate_df = proc_df(estate_df)
+        len_df = estate_df.shape[0]
+        
+        # 해당 조건 데이터 없을 경우 종료
+        if len_df == 0:
+            pass
+        else:
+            estate_df = proc_df(estate_df)
 
-        ### mysql 데이터 insert
-        # 단순 삽입만 가능한가? 필요시 pymysql로 쿼리 짜기
-        db_connection_str = 'mysql+pymysql://{}:{}@{}/{}'.format(dbinfo['username'], dbinfo['password'], dbinfo['host'], dbinfo['database'])
-        db_connection = create_engine(db_connection_str)
-        conn = db_connection.connect()
-        estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False) # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
+            ### mysql 데이터 insert
+            # 단순 삽입만 가능한가? 필요시 pymysql로 쿼리 짜기
+            db_connection_str = 'mysql+pymysql://{}:{}@{}/{}'.format(dbinfo['username'], dbinfo['password'], dbinfo['host'], dbinfo['database'])
+            db_connection = create_engine(db_connection_str)
+            # conn = db_connection.connect()
+            estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False) # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
 
-        print('{} {}행 적재 완료'.format(name, estate_df.shape[0]))
+        part_end = time.time()
+        print('{} {}행 적재 완료. 소요 시간: {:.2f}s'.format(name, estate_df.shape[0], part_end - part_start))
         # if cnt == 5:
         #     break
 
-    print('모든 데이터 적재 완료')
+    end = time.time()
+    print('모든 데이터 적재 완료. 소요 시간: {:.2f}s'.format(end - start))
 
 
 
