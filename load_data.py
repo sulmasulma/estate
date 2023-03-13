@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
 # from bs4 import BeautifulSoup
-# from datetime import datetime
+from datetime import datetime
 import time
 
 ## 시작 시간
@@ -53,6 +53,13 @@ except:
 endpoint = "http://openapi.molit.go.kr/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTradeDev"
 service_key = api_keys['apart']
 
+### 종결 함수
+def terminate():
+    end = time.time()
+    print('스크립트 종료. 소요 시간: {:.2f}s'.format(end - start))
+    quit()
+
+
 ### xml 데이터 파싱
 def get_items(response, bas_ym, zip_code):
     root = ET.fromstring(response.content)
@@ -61,8 +68,8 @@ def get_items(response, bas_ym, zip_code):
 
     # api 요청 횟수 초과로 데이터 리턴하지 않을 때, 스크립트 종료
     if not root.find('body'):
-        print('api 요청 횟수 초과. 종료')
-        quit()
+        print('api 요청 횟수 초과')
+        terminate()
     
     for child in root.find('body').find('items'):
         cnt += 1
@@ -156,6 +163,9 @@ def proc_zipdf(data_frame):
 
 
 def main():
+    # 작업 시작
+    print("{} 작업 시작".format(datetime.now()))
+
     ### 우편번호 목록 가져오기
     zips = pd.read_csv(curr_dir + '/zip_code.txt', sep='\t', encoding='cp949')
     zips_small = proc_zipdf(zips)
