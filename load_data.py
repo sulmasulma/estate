@@ -162,13 +162,25 @@ def proc_zipdf(data_frame):
     return zips_small
 
 
+## 우편번호 데이터는 db에서 가져오기
+# api 데이터 제공되지 않는 지역 제외 (옹진군, 수원, 성남, 안양, 안산, 고양, 용인, 청주, 천안, 전주, 포항)
+# 옹진군은 아파트가 없는 것 같고, 나머지 지역은 하위 지역(구 단위)에서 데이터 제공
+def get_zip_data():
+    sql = "select code, name from zip_code where api_data_yn = '1'"
+    cursor.execute(sql)
+    zips_db = cursor.fetchall()
+    
+    return zips_db
+
+
 def main():
     # 작업 시작
     print("{} 작업 시작".format(datetime.now()))
 
-    ### 우편번호 목록 가져오기
-    zips = pd.read_csv(curr_dir + '/zip_code.txt', sep='\t', encoding='cp949')
-    zips_small = proc_zipdf(zips)
+    #우편번호 목록 가져오기
+    # zips = pd.read_csv(curr_dir + '/zip_code.txt', sep='\t', encoding='cp949')
+    # zips_small = proc_zipdf(zips) # 파일로 관리
+    zips_small = get_zip_data() # db로 관리
 
     # 한 동네(종로구)에 대해 6초
     # 6 * 261 -> 다 하면 26분 정도 걸릴 각
@@ -176,13 +188,12 @@ def main():
     # 근데 하루 트래픽 제한 1000. 24개월 기준, 하루에 40개 정도 지역만 적재 가능
     year = ['2021', '2022']
 
-    ### api 데이터 가져오기 (zip_code 단위. 2년치씩 한번에 저장)
+    ##api 데이터 가져오기 (zip_code 단위. 2년치씩 한번에 저장)
     # 3중 for문 말고, zip으로 해야 하나? zip(code, yy, mm). mm은 list(range)
-    # cnt = 0
-    for code, name in zips_small.values:
+    for code, name in zips_small:
         part_start = time.time()
         # 현재 db에 해당 zip_code 데이터 있을 경우, 다음으로 넘어가기
-        # 근데 요청할 때마다 이렇게 하면 오래 걸리지 않을까?
+        # 근데 매 루프마다 이렇게 하면 오래 걸림. 다음날 시작할 지점을 기록해 두어야 하나?
         sql = 'select distinct zip_code from apart'
         cursor.execute(sql)
         zips_db = [ele[0] for ele in cursor.fetchall()]
