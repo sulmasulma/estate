@@ -186,15 +186,20 @@ def main():
     # 6 * 261 -> 다 하면 26분 정도 걸릴 각
     # 모든 동네에 대해 202101 ~ 202212 해보기 -> 총 요청 횟수 261*24 = 6264
     # 근데 하루 트래픽 제한 1000. 24개월 기준, 하루에 40개 정도 지역만 적재 가능
-    year = ['2021', '2022']
 
-    ##api 데이터 가져오기 (zip_code 단위. 2년치씩 한번에 저장)
+    ### api 데이터 가져오기 (zip_code 단위. 2년치씩 한번에 저장)
+    # year = ['2021', '2022'] # 3/19 완료
+    year = ['2019', '2020'] # 3/19 시작
+
     # 3중 for문 말고, zip으로 해야 하나? zip(code, yy, mm). mm은 list(range)
     for code, name in zips_small:
         part_start = time.time()
         # 현재 db에 해당 zip_code 데이터 있을 경우, 다음으로 넘어가기
         # 근데 매 루프마다 이렇게 하면 오래 걸림. 다음날 시작할 지점을 기록해 두어야 하나?
-        sql = 'select distinct zip_code from apart'
+        sql = '''
+            select distinct zip_code from apart
+            where substr(bas_dt,1,6) between '201901' and '202012'
+        '''
         cursor.execute(sql)
         zips_db = [ele[0] for ele in cursor.fetchall()]
         if code in zips_db:
