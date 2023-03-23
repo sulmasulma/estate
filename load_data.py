@@ -103,7 +103,7 @@ def proc_df(data_frame):
             data[col].replace({'': np.nan}, inplace=True)
 
     data['거래금액'] = data['거래금액'].str.replace(',', '').astype(int)
-    data['층'] = data['층'].astype(int)
+    data['층'] = data['층'].astype(float) # 이게 null이 있는 행이 있음: float로 변환. 원래는 string이었나?
     data['전용면적'] = data['전용면적'].astype(float)
     data['해제여부'].replace({'O':'1', 'X':'0'}, inplace=True)
     data['bas_ym'] = data['no'].str[:6]
@@ -195,7 +195,7 @@ def main():
     for code, name in zips_small:
         part_start = time.time()
         # 현재 db에 해당 zip_code 데이터 있을 경우, 다음으로 넘어가기
-        # 근데 매 루프마다 이렇게 하면 오래 걸림. 다음날 시작할 지점을 기록해 두어야 하나?
+        # 근데 매 루프마다 이렇게 하면 오래 걸림. 다음날 시작할 지점을 기록해 두어야 하나? 루프 밖에서 max(zip_code) 가져오게
         sql = '''
             select distinct zip_code from apart
             where substr(bas_dt,1,6) between '201901' and '202012'
