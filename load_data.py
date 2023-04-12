@@ -217,7 +217,7 @@ def main():
                     'DEAL_YMD': bas_ym, # 계약월
                     'LAWD_CD': code,
                     'pageNo': '1',
-                    'numOfRows': '1000', # 없으면 4행. 몇까지 되는지 보기
+                    'numOfRows': '10000', # 없으면 4행. 4/12 1000 -> 10000 수정
                 }
 
                 data_temp = get_data(params)
