@@ -21,10 +21,10 @@ start = time.time()
 
 ## 이 py 파일의 위치
 # pc용
-# curr_dir = os.getcwd()
+curr_dir = os.getcwd()
 # cron용
-curr_path = os.path.realpath(__file__)
-curr_dir = os.path.dirname(curr_path)
+# curr_path = os.path.realpath(__file__)
+# curr_dir = os.path.dirname(curr_path)
 
 ## db connection info
 with open(curr_dir + '/dbinfo_estate.pickle', 'rb') as f:
@@ -189,19 +189,23 @@ def main():
 
     ### api 데이터 가져오기 (zip_code 단위. 2년치씩 한번에 저장)
     # year = ['2021', '2022'] # 3/19 완료
-    year = ['2019', '2020'] # 3/19 시작
+    # year = ['2019', '2020'] # 3/19 시작
+    year = ['2023']
+
+    # 데이터 없는 지역에 대해 주소 조회
+    sql = '''
+        select distinct zip_code from apart
+        where substr(bas_dt,1,6) between '202304' and '202305'
+        order by 1
+    '''.format(bas_ym)
+
+    cursor.execute(sql)
+    zips_db = [ele[0] for ele in cursor.fetchall()]
 
     # 3중 for문 말고, zip으로 해야 하나? zip(code, yy, mm). mm은 list(range)
     for code, name in zips_small:
         part_start = time.time()
         # 현재 db에 해당 zip_code 데이터 있을 경우, 다음으로 넘어가기
-        # 근데 매 루프마다 이렇게 하면 오래 걸림. 다음날 시작할 지점을 기록해 두어야 하나? 루프 밖에서 max(zip_code) 가져오게
-        sql = '''
-            select distinct zip_code from apart
-            where substr(bas_dt,1,6) between '201901' and '202012'
-        '''
-        cursor.execute(sql)
-        zips_db = [ele[0] for ele in cursor.fetchall()]
         if code in zips_db:
             continue
 
@@ -209,7 +213,8 @@ def main():
         estate_data = []
         # cnt += 1
         for yy in year:
-            for mm in range(1, 13):
+            # for mm in range(1, 13):
+            for mm in range(4, 6): # 4/13: 3월까지 적재. 6/1: 4,5월 적재
                 bas_ym = yy + "%02d" % mm
                 # print(bas_ym)
                 params = {
