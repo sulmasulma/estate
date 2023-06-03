@@ -177,7 +177,7 @@ def main():
     # 작업 시작
     lastday_lm = datetime.today().replace(day=1) - timedelta(days=1)
     bas_ym = lastday_lm.strftime("%Y%m")
-    print("{} 작업 시작".format(bas_ym))
+    print("{} 작업 시작. {}".format(bas_ym, datetime.now()))
 
     #우편번호 목록 가져오기
     # zips = pd.read_csv(curr_dir + '/zip_code.txt', sep='\t', encoding='cp949')
