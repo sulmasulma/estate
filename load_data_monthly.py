@@ -112,7 +112,6 @@ def proc_df(data_frame):
     data.drop(columns=['년', '월', '일', 'bas_ym', '지역코드', '등기일자'], inplace=True) # 8/9 등기일자 컬럼 제거(7/25 api에 추가됨. 필요 없는 컬럼)
 
     # 컬럼명 mysql에 맞게 바꾸기
-    # 1054, "Unknown column '등기일자' in 'field list'")
     data.rename(columns={
         '거래금액': 'deal_amount',
         '거래유형': 'req_gbn',
