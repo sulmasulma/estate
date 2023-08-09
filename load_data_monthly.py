@@ -2,6 +2,7 @@
 '''
 아파트 매매 실거래가 api ETL 스크립트 (매월초 monthly 수집)
 create: 2023.06.01
+edit: 2023.08.09(새로 추가된 등기일자 컬럼 미수집 처리)
 '''
 
 import sys, os
@@ -108,9 +109,10 @@ def proc_df(data_frame):
     data['해제여부'].replace({'O':'1', 'X':'0'}, inplace=True)
     data['bas_ym'] = data['no'].str[:6]
     data['bas_dt'] = data.apply(lambda x:'%s%s%s' % (x['년'],x['월'].zfill(2),x['일'].zfill(2)),axis=1)
-    data.drop(columns=['년', '월', '일', 'bas_ym', '지역코드'], inplace=True)
+    data.drop(columns=['년', '월', '일', 'bas_ym', '지역코드', '등기일자'], inplace=True) # 8/9 등기일자 컬럼 제거(7/25 api에 추가됨. 필요 없는 컬럼)
 
     # 컬럼명 mysql에 맞게 바꾸기
+    # 1054, "Unknown column '등기일자' in 'field list'")
     data.rename(columns={
         '거래금액': 'deal_amount',
         '거래유형': 'req_gbn',
