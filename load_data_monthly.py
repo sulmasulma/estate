@@ -22,10 +22,10 @@ start = time.time()
 
 ## 이 py 파일의 위치
 # pc용
-curr_dir = os.getcwd()
-# cron용
-# curr_path = os.path.realpath(__file__)
-# curr_dir = os.path.dirname(curr_path)
+# curr_dir = os.getcwd()
+# py, cron 겸용
+curr_path = os.path.realpath(__file__)
+curr_dir = os.path.dirname(curr_path)
 
 ## db connection info
 with open(curr_dir + '/dbinfo_estate.pickle', 'rb') as f:
