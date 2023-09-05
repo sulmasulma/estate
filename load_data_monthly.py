@@ -9,7 +9,6 @@ import sys, os
 from sqlalchemy import create_engine
 import pymysql
 import logging, pickle, requests
-from urllib import parse
 import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
