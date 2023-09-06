@@ -50,11 +50,11 @@ try:
         use_unicode=True, charset='utf8'
     )
     cursor = conn.cursor()
-except:
-    logging.error("could not connect to rds")
+except Exception as e:
+    logging.error("could not connect to rds", e)
     sys.exit(1)
 
-
+# api 호출 정보
 endpoint = "http://openapi.molit.go.kr/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTradeDev"
 service_key = api_keys['apart']
 
@@ -66,7 +66,7 @@ def terminate():
 
 
 ### xml 데이터 파싱
-def get_items(response, bas_ym, zip_code):
+def get_items(response, bas_ym: str, zip_code: str):
     root = ET.fromstring(response.content)
     item_list = []
     cnt = 0
@@ -91,14 +91,14 @@ def get_items(response, bas_ym, zip_code):
         item_list.append(data)
     return item_list
 
-def get_data(params):
+def get_data(params: dict) -> list:
     r = requests.get(endpoint, params=params)
     item_list = get_items(r, bas_ym=params['DEAL_YMD'], zip_code=params['LAWD_CD'])
     return item_list
 
 
 ## 가져온 데이터 전처리
-def proc_df(data_frame):
+def proc_df(data_frame: pd.DataFrame):
     data = data_frame.copy()
     # 공백은 null로 바꾸기
     for col in data.columns:
@@ -170,7 +170,7 @@ def proc_zipdf(data_frame):
 ## 우편번호 데이터는 db에서 가져오기
 # api 데이터 제공되지 않는 지역 제외 (옹진군, 수원, 성남, 안양, 안산, 고양, 용인, 청주, 천안, 전주, 포항)
 # 옹진군은 아파트가 없는 것 같고, 나머지 지역은 하위 지역(구 단위)에서 데이터 제공
-def get_zip_data():
+def get_zip_data() -> tuple:
     sql = "select code, name from zip_code where api_data_yn = '1'"
     cursor.execute(sql)
     zips_db = cursor.fetchall()
