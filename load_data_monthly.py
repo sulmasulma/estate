@@ -5,16 +5,21 @@ create: 2023.06.01
 edit: 2023.08.09(새로 추가된 등기일자 컬럼 미수집 처리)
 '''
 
-import sys, os
-from sqlalchemy import create_engine
-import pymysql
-import logging, pickle, requests
-import pandas as pd
-import numpy as np
+import logging
+import os
+import pickle
+import sys
+import time
 import xml.etree.ElementTree as ET
+
 # from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-import time
+
+import numpy as np
+import pandas as pd
+import pymysql
+import requests
+from sqlalchemy import create_engine
 
 ## 시작 시간
 start = time.time()
