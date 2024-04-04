@@ -3,6 +3,7 @@
 아파트 매매 실거래가 api ETL 스크립트 (매월초 monthly 수집)
 create: 2023.06.01
 edit: 2023.08.09(새로 추가된 등기일자 컬럼 미수집 처리)
+edit: 2024.04.04(동 포함하여 처리되지 않은 컬럼 삭제)
 '''
 
 import logging
@@ -141,7 +142,13 @@ def proc_df(data_frame: pd.DataFrame):
         '층': 'floor',
         '해제사유발생일': 'cancel_deal_type',
         '해제여부': 'cancel_deal_yn',
+        '매도자': 'seller',
+        '매수자': 'buyer',
     }, inplace=True)
+
+    # 처리 후 남은 한글 컬럼명 지우기 (240404 기준: 동)
+    ko_cols = [col for col in data.columns if not col.replace('_', '').encode().isalpha()]
+    data.drop(columns=ko_cols, inplace=True)
 
     return data
 
@@ -236,7 +243,8 @@ def main():
             db_connection_str = 'mysql+pymysql://{}:{}@{}/{}'.format(dbinfo['username'], dbinfo['password'], dbinfo['host'], dbinfo['database'])
             db_connection = create_engine(db_connection_str)
             # conn = db_connection.connect()
-            estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False) # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
+            estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False)
+            # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
 
         part_end = time.time()
         print('{} {}행 적재 완료. 소요 시간: {:.2f}s'.format(name, estate_df.shape[0], part_end - part_start))
