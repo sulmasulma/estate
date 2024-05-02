@@ -33,11 +33,11 @@ curr_path = os.path.realpath(__file__)
 curr_dir = os.path.dirname(curr_path)
 
 ## db connection info
-with open(curr_dir + '/dbinfo_estate.pickle', 'rb') as f:
+with open(curr_dir + '/info/dbinfo_estate.pickle', 'rb') as f:
     dbinfo = pickle.load(f)
 
 ## 정부 api key
-with open(curr_dir + '/api_keys.pickle', 'rb') as f:
+with open(curr_dir + '/info/api_keys.pickle', 'rb') as f:
     api_keys = pickle.load(f)
 
 ## connect MySQL
@@ -196,7 +196,7 @@ def main():
     # zips_small = proc_zipdf(zips) # 파일로 관리
     zips_small = get_zip_data() # db로 관리
 
-    # 데이터 없는 지역에 대해 주소 조회
+    # 이미 있는 우편번호 목록 파악. 없는 지역에 대해서만 api 요청
     sql = '''
         select distinct zip_code from apart
         where substr(bas_dt,1,6) = '{}'
