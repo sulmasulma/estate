@@ -206,7 +206,7 @@ def main():
 
     # 이미 있는 우편번호 목록 파악. 없는 지역에 대해서만 api 요청
     sql = '''
-        select distinct zip_code from apart_temp
+        select distinct zip_code from apart
         where substr(bas_dt,1,6) = '{}'
         order by 1
     '''.format(bas_ym)
@@ -251,7 +251,7 @@ def main():
             db_connection_str = 'mysql+pymysql://{}:{}@{}/{}'.format(dbinfo['username'], dbinfo['password'], dbinfo['host'], dbinfo['database'])
             db_connection = create_engine(db_connection_str)
             # conn = db_connection.connect()
-            estate_df.to_sql(name='apart_temp', con=db_connection, if_exists='append',index=False)
+            estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False)
             # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
 
         part_end = time.time()
