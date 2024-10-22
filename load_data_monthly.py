@@ -102,7 +102,6 @@ def get_data(params: dict) -> list:
 
 ## 가져온 데이터 전처리
 def proc_df(data_frame: pd.DataFrame):
-    global data
     data = data_frame.copy()
     # 공백은 null로 바꾸기
     for col in data.columns:
