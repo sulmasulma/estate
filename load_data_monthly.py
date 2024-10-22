@@ -4,6 +4,7 @@
 create: 2023.06.01
 edit: 2023.08.09(새로 추가된 등기일자 컬럼 미수집 처리)
 edit: 2024.04.04(동 포함하여 처리되지 않은 컬럼 삭제)
+edit: 2024.10.12(새 api에 맞추어 데이터 레이아웃 수정)
 '''
 
 import logging
@@ -56,7 +57,8 @@ except Exception as e:
     sys.exit(1)
 
 # api 호출 정보
-endpoint = "http://openapi.molit.go.kr/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTradeDev"
+# endpoint = "http://openapi.molit.go.kr/OpenAPI_ToolInstallPackage/service/rest/RTMSOBJSvc/getRTMSDataSvcAptTradeDev"
+endpoint = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev" # 240816 api 변경 
 service_key = api_keys['apart']
 
 ### 종결 함수
@@ -100,6 +102,7 @@ def get_data(params: dict) -> list:
 
 ## 가져온 데이터 전처리
 def proc_df(data_frame: pd.DataFrame):
+    global data
     data = data_frame.copy()
     # 공백은 null로 바꾸기
     for col in data.columns:
@@ -108,47 +111,52 @@ def proc_df(data_frame: pd.DataFrame):
             # print(col, blank_cnt)
             data[col].replace({'': np.nan}, inplace=True)
 
-    data['거래금액'] = data['거래금액'].str.replace(',', '').astype(int)
-    data['층'] = data['층'].astype(float) # 이게 null이 있는 행이 있음: float로 변환. 원래는 string이었나?
-    data['전용면적'] = data['전용면적'].astype(float)
-    data['해제여부'].replace({'O':'1', 'X':'0'}, inplace=True)
-    data['bas_ym'] = data['no'].str[:6]
-    data['bas_dt'] = data.apply(lambda x:'%s%s%s' % (x['년'],x['월'].zfill(2),x['일'].zfill(2)),axis=1)
-    data.drop(columns=['년', '월', '일', 'bas_ym', '지역코드', '등기일자'], inplace=True) # 8/9 등기일자 컬럼 제거(7/25 api에 추가됨. 필요 없는 컬럼)
+    # 컬럼별 전처리
+    data['dealAmount'] = data['dealAmount'].str.replace(',', '').astype(int)
+    data['floor'] = data['floor'].astype(float) # 이게 null이 있는 행이 있음: float로 변환. 원래는 string이었나?
+    data['excluUseAr'] = data['excluUseAr'].astype(float) # 전용면적(소수점 단위 m^2)
+    data['cdealType'].replace({'O':'1', 'X':'0'}, inplace=True)
+    data['bas_dt'] = data.apply(lambda x:'%s%s%s' % (x['dealYear'],x['dealMonth'].zfill(2),x['dealDay'].zfill(2)),axis=1)
+    data.loc[data['rgstDate'].notnull(), 'rgstDate'] = data.loc[data['rgstDate'].notnull(), 'rgstDate'].apply(lambda x: '20' + x[:2] + x[3:5] + x[6:8])
+    data.drop(columns=['dealYear', 'dealMonth', 'dealDay'], inplace=True)
 
     # 컬럼명 mysql에 맞게 바꾸기
     data.rename(columns={
-        '거래금액': 'deal_amount',
-        '거래유형': 'req_gbn',
-        '건축년도': 'build_year',
-        '도로명': 'road_name',
-        '도로명건물본번호코드': 'road_name_bonbun',
-        '도로명건물부번호코드': 'road_name_bubun',
-        '도로명시군구코드': 'road_name_sigungu_code',
-        '도로명일련번호코드': 'road_name_seq',
-        '도로명지상지하코드': 'road_name_basement_code',
-        '도로명코드': 'road_name_code',
-        '법정동': 'dong',
-        '법정동본번코드': 'bonbun',
-        '법정동부번코드': 'bubun',
-        '법정동시군구코드': 'sigungu_cd',
-        '법정동읍면동코드': 'emd_code',
-        '법정동지번코드': 'land_code',
-        '아파트': 'apartment_name',
-        '일련번호': 'reg_no',
-        '전용면적': 'size',
-        '중개사소재지': 'dealer_sigungu',
-        '지번': 'jibun',
-        '층': 'floor',
-        '해제사유발생일': 'cancel_deal_type',
-        '해제여부': 'cancel_deal_yn',
-        '매도자': 'seller',
-        '매수자': 'buyer',
+        'aptDong': 'apartment_dong', # 신규(아파트 동명)
+        'aptNm': 'apartment_name',
+        'aptSeq': 'reg_no', # 단지 일련번호(new): 일련번호(old)
+        # 'bonbun': '', # 그대로
+        # 'bubun': '', # 그대로
+        'buildYear': 'build_year',
+        'buyerGbn': 'buyer',
+        'cdealDay': 'cancel_deal_type', # 해제사유발생일. sql 컬럼명 cancel_deal_type -> cancel_deal_day 변경 필요!!!
+        'cdealType': 'cancel_deal_yn', # 해제여부
+        'dealAmount': 'deal_amount', 
+        'dealDay': 'day', 'dealMonth': 'month', 'dealYear': 'year', # 년월일 합쳐서 bas_dt
+        'dealingGbn': 'dealing_gbn', # 거래유형. 컬럼명 변경하기 (req_gbn -> dealing_gbn)
+        'estateAgentSggNm': 'dealer_sigungu',
+        'excluUseAr': 'size', # 전용면적
+        # 'floor': '', # 그대로
+        # 'jibun': '', # 그대로
+        'landCd': 'land_code',
+        'landLeaseholdGbn': 'land_lease_hold_yn', # 신규(토지임대부 아파트 여부) 
+        'rgstDate': 'reg_dt', # 신규(등기일자)
+        'roadNm': 'road_name',
+        'roadNmBonbun': 'road_name_bonbun', 
+        'roadNmBubun': 'road_name_bubun',
+        'roadNmCd': 'road_name_code', 
+        'roadNmSeq': 'road_name_seq', 
+        'roadNmSggCd': 'road_name_sigungu_code',
+        'roadNmbCd': 'road_name_basement_code', 
+        'sggCd': 'zip_code',
+        'slerGbn': 'seller', 
+        'umdCd': 'emd_code',
+        'umdNm': 'dong' # 읍면동
     }, inplace=True)
 
-    # 처리 후 남은 한글 컬럼명 지우기 (240404 기준: 동)
-    ko_cols = [col for col in data.columns if not col.replace('_', '').encode().isalpha()]
-    data.drop(columns=ko_cols, inplace=True)
+    # 처리 후 남은 한글 컬럼명 지우기 (241022 기준 없음)
+    # ko_cols = [col for col in data.columns if not col.replace('_', '').encode().isalpha()]
+    # data.drop(columns=ko_cols, inplace=True)
 
     return data
 
@@ -198,7 +206,7 @@ def main():
 
     # 이미 있는 우편번호 목록 파악. 없는 지역에 대해서만 api 요청
     sql = '''
-        select distinct zip_code from apart
+        select distinct zip_code from apart_temp
         where substr(bas_dt,1,6) = '{}'
         order by 1
     '''.format(bas_ym)
@@ -243,7 +251,7 @@ def main():
             db_connection_str = 'mysql+pymysql://{}:{}@{}/{}'.format(dbinfo['username'], dbinfo['password'], dbinfo['host'], dbinfo['database'])
             db_connection = create_engine(db_connection_str)
             # conn = db_connection.connect()
-            estate_df.to_sql(name='apart', con=db_connection, if_exists='append',index=False)
+            estate_df.to_sql(name='apart_temp', con=db_connection, if_exists='append',index=False)
             # 이 라이브러리는 이미 pk 있을 경우 데이터 replace 기능 있나? 근데 그럴 일이 있을지 모르겠음. pk도 내가 만든 거니까
 
         part_end = time.time()
