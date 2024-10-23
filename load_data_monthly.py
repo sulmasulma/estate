@@ -75,7 +75,8 @@ def get_items(response, bas_ym: str, zip_code: str):
     cnt = 0
 
     # api 요청 횟수 초과로 데이터 리턴하지 않을 때, 스크립트 종료
-    if not root.find('body'):
+    # if not root.find('body'):
+    if root.find('body') is None: # deprecated 해결 테스트
         print('api 요청 횟수 초과')
         terminate()
     
