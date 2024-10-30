@@ -5,6 +5,7 @@ create: 2023.06.01
 edit: 2023.08.09(새로 추가된 등기일자 컬럼 미수집 처리)
 edit: 2024.04.04(동 포함하여 처리되지 않은 컬럼 삭제)
 edit: 2024.10.12(새 api에 맞추어 데이터 레이아웃 수정)
+edit: 2024.10.30(load_dh 컬럼 추가)
 '''
 
 import logging
@@ -153,6 +154,10 @@ def proc_df(data_frame: pd.DataFrame):
         'umdCd': 'emd_code',
         'umdNm': 'dong' # 읍면동
     }, inplace=True)
+
+    # load_dh 컬럼 추가
+    now_dt = datetime.now().strftime('%Y%m%d%H%M%S')
+    data['load_dh'] = now_dt
 
     # 처리 후 남은 한글 컬럼명 지우기 (241022 기준 없음)
     # ko_cols = [col for col in data.columns if not col.replace('_', '').encode().isalpha()]
