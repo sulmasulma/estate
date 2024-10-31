@@ -86,8 +86,8 @@ def get_items(response, bas_ym: str, zip_code: str):
         elements = child.findall('*')
         data = {}
         data['no'] = '{}_{}'.format(bas_ym, str(cnt).zfill(4)) # 일련번호. 202208_0003 형식(pk로 사용). 근데 순번별 데이터가 변할 일이 있을까?
-        # data['bas_ym'] = bas_ym
-        data['zip_code'] = zip_code
+        # data['bas_ym'] = bas_ym # 불필요한 컬럼. 제거
+        # data['zip_code'] = zip_code # 이거 대신 sggCd 컬럼 사용
 
         for ele in elements:
             tag = ele.tag.strip() # key. 처음에만 저장하면 되지 않나?
@@ -164,27 +164,6 @@ def proc_df(data_frame: pd.DataFrame):
     # data.drop(columns=ko_cols, inplace=True)
 
     return data
-
-
-## 우편번호 데이터 전처리
-def proc_zipdf(data_frame):
-    zips = data_frame.copy()
-    # 타입 변경
-    zips['법정동코드'] = zips['법정동코드'].astype(str) 
-
-    # 존재하는 지역만 남기기
-    zips = zips[(zips['폐지여부'] == '존재')]
-
-    # LAWD_CD 파라미터는 5자리 -> 시/군/구 단위로만 남기기 (277개)
-    zips = zips[zips['법정동코드'].str[5:] == '00000']
-    zips['법정동코드'] = zips['법정동코드'].str[:5]
-    zips = zips[['법정동코드', '법정동명']]
-    zips.columns = ['code', 'name']
-    zips.reset_index(inplace=True, drop=True)
-
-    # 기초단체만 api 조회됨 (시/군/구)
-    zips_small = zips[zips['code'].str[2:] != '000']
-    return zips_small
 
 
 ## 우편번호 데이터는 db에서 가져오기
